@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Canvas básico</title>
+    <style media="screen">
+      
+      h1{
+        text-align: center;
+      }
+      #miCanvas{
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Juego de memoria</h1>
+    <canvas id="miCanvas"  width="1024" height="550">
+      Tu navegador no soporta CANVAS
+    </canvas>
+  </body>
+</html>
+<script type="text/javascript">
+/**************Variables**********************/
+var ctx,canvas;
+var primeraCarta = true;
+var cartaPrimera, cartaSegunda;
+var colorDelante = "yellow";
+var colorAtras = "blue";
+var colorCanvas = "green";
+var inicioX = 45;
+var inicioY = 50;
+var cartaMargen = 30;
+var cartaLon = 30;
+var cartaAncho = cartaLon + 100;
+var cartaLargo = cartaLon + 100;
+var carta_array = new Array();
+var iguales = false;
+var cartas = 0;
+/**************Objetos**********************/
+function Carta(x,y,ancho,largo,info){
+  this.x = x;
+  this.y = y;
+  this.ancho = ancho;
+  this.largo = largo;
+  this.informacion = info;
+  this.dibuja = dibujaCarta;
+}
+
+function dibujaCarta(){
+  ctx.fillStyle = colorAtras;
+  ctx.fillRect(this.x,this.y,this.ancho,this.largo);
+}
+
+function tablero(){
+  var i;
+  var carta;
+  var x = inicioX;
+  var y = inicioY;
+  for(i = 0;i < 6;i ++){
+
+    carta = new Carta(x,y,cartaAncho,cartaLargo,i);
+    carta_array.push(carta);
+    carta.dibuja();
+
+    //segunda carta
+    carta = new Carta(x,y+cartaAncho+cartaMargen,cartaAncho,cartaLargo,i);
+    carta_array.push(carta);  
+    carta.dibuja();
+
+    //incrementa el valor de x
+    x += cartaAncho + cartaMargen;
+  }
+}
+
+function barajar(){
+  var i, j, k;
+  var temporal; 
+  var lon = carta_array.length;
+  for(j=0;j<lon*3;j++){
+    i = Math.floor(Math.random()*lon);
+    k = Math.floor(Math.random()*lon);
+    //
+    temporal = carta_array[i].informacion;
+    //
+
+    carta_array[i].informacion = carta_array[k].informacion;
+    carta_array[k].informacion = temporal;
+  }
+}
+function ajusta(xx,yy){
+  var posCanvas = canvas.getBoundingClientRect();
+  var x = xx - posCanvas.left;
+  var y = yy - posCanvas.top;
+  return {x:x, y:y}
+
+}
+
+function selecciona(e){
+  var pos = ajusta(e.clientX,e.clientY);
+  //alert(pos.x+", "+pos.y);
+  for(var i = 0;i<carta_array.length;i++){
+    var carta = carta_array[i];
+    if(carta.x > 0){
+      if((pos.x > carta.x) && (pos.x < carta.x + carta.ancho) && (pos.y > carta.y) && (pos.y < carta.y + carta.largo)){
+        if((primeraCarta) || (i != cartaPrimera)) break;
+      }
+    }
+  }
+  //Encontro la carta
+  if(i<carta_array.length){
+    if(primeraCarta){
+      cartaPrimera = i;
+      primeraCarta = false;
+      pinta(carta);
+    }else{
+      cartaSegunda = i;
+      pinta(carta);
+      primeraCarta = true;
+      if(carta_array[cartaPrimera].informacion==carta_array[cartaSegunda].informacion){
+        iguales = true;
+        cartas++;
+        aciertos();
+      }else{
+        iguales = false;
+      }
+      setTimeout(volteaCarta, 1000);
+    }
+    
+  }
+}
+
+function volteaCarta(){
+  if(iguales == false){
+    carta_array[cartaPrimera].dibuja();
+    carta_array[cartaSegunda].dibuja();
+  }else{
+    ctx.clearRect(carta_array[cartaPrimera].x,
+      carta_array[cartaPrimera].y,
+      carta_array[cartaPrimera].ancho,
+      carta_array[cartaPrimera].largo);
+
+    //
+    ctx.clearRect(carta_array[cartaSegunda].x,
+      carta_array[cartaSegunda].y,
+      carta_array[cartaSegunda].ancho,
+      carta_array[cartaSegunda].largo);
+    //
+    carta_array[cartaPrimera].x = -1;
+    carta_array[cartaSegunda].x = -1;
+  }
+}
+
+function pinta(carta){
+  ctx.fillStyle = colorDelante;
+  ctx.fillRect(carta.x,carta.y,carta.ancho,carta.largo);
+  ctx.font = "bold 40px Comic";
+  ctx.fillStyle = "black";
+  ctx.fillText(String(carta.informacion), carta.x + carta.ancho/2-10, carta.y + carta.largo/2+10);
+}
+
+function aciertos(){
+  ctx.fillStyle = "black";
+  ctx.font = "bold 40px Comic";
+  if(cartas == 6){    
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillText("Muy bien, ¡eres un genio!",10,canvas.height/2);
+  }else{
+    ctx.save();  
+    ctx.clearRect(0, 500,canvas.width,50);
+    ctx.fillText("Aciertos: "+String(cartas),10,550);
+    ctx.restore();
+  }
+}
+  window.onload = function() {
+    canvas = document.getElementById('miCanvas');
+    if (canvas && canvas.getContext) {
+      ctx = canvas.getContext("2d");
+      if (ctx) {
+
+        canvas.addEventListener("click",selecciona,false);
+
+        tablero();
+        barajar();
+        aciertos();
+
+      }else{
+        alert("Error al crear tu contexto");
+      }
+    }
+  }
+
+    
+  
+</script>
